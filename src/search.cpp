@@ -1756,7 +1756,7 @@ Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth) {
             ss->staticEval = bestValue = to_static_eval(newEval);
 
             // ttValue can be used as a better position evaluation (~13 Elo)
-            if (ttValue != VALUE_NONE
+            if (std::abs(ttValue) < VALUE_TB_WIN_IN_MAX_PLY
                 && (tte->bound() & (ttValue > bestValue ? BOUND_LOWER : BOUND_UPPER)))
                 bestValue = ttValue;
         }
