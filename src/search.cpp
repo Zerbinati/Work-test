@@ -734,11 +734,12 @@ Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, boo
     Key      posKey;
     Move     ttMove, move, excludedMove, bestMove;
     Depth    extension, newDepth;
-    Value    bestValue, value, ttValue, eval, maxValue, probCutBeta;
+    Value    bestValue, value, ttValue, eval, maxValue, probCutBeta, singularValue;
     bool     givesCheck, improving, priorCapture, opponentWorsening;
     bool     capture, moveCountPruning, ttCapture;
     Piece    movedPiece;
     int      moveCount, captureCount, quietCount;
+    Bound    singularBound;
 
     // Step 1. Initialize node
     Thread* thisThread = pos.this_thread();
@@ -1183,8 +1184,11 @@ moves_loop:  // When in check, search starts here
     MovePicker mp(pos, ttMove, depth, &thisThread->mainHistory, &captureHistory, contHist,
                   &thisThread->pawnHistory, countermove, ss->killers);
 
+
     value            = bestValue;
     moveCountPruning = false;
+    singularValue    = VALUE_INFINITE;
+    singularBound    = BOUND_NONE;
 
     // Step 13. Loop through all pseudo-legal moves until no moves remain
     // or a beta cutoff occurs.
@@ -1234,7 +1238,9 @@ moves_loop:  // When in check, search starts here
         {
             // Skip quiet moves if movecount exceeds our FutilityMoveCount threshold (~8 Elo)
             if (!moveCountPruning)
-                moveCountPruning = moveCount >= futility_move_count(improving, depth);
+            moveCountPruning =
+              moveCount >= futility_move_count(improving, depth)
+                             - (singularBound == BOUND_UPPER && singularValue < alpha - 50);
 
             // Reduced depth of the next LMR search
             int lmrDepth = newDepth - r;
@@ -1314,8 +1320,9 @@ moves_loop:  // When in check, search starts here
                 Depth singularDepth = newDepth / 2;
 
                 ss->excludedMove = move;
-                value =
+                value            = singularValue =
                   search<NonPV>(pos, ss, singularBeta - 1, singularBeta, singularDepth, cutNode);
+                singularBound    = singularValue >= singularBeta ? BOUND_LOWER : BOUND_UPPER;
                 ss->excludedMove = Move::none();
 
                 if (value < singularBeta)
