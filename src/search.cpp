@@ -1030,7 +1030,7 @@ Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, boo
     if (eval < alpha - 512 - 293 * depth * depth)
     {
         value = qsearch<NonPV>(pos, ss, alpha - 1, alpha);
-        if (value < alpha)
+        if (value < alpha && std::abs(value) < VALUE_TB_WIN_IN_MAX_PLY)
             return value;
     }
 
