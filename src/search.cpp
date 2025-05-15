@@ -1041,10 +1041,9 @@ Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, boo
     if (!ss->ttPv && depth < 13
         && eval - futility_margin(depth, cutNode && !ss->ttHit, improving, opponentWorsening)
                - (ss - 1)->statScore / 263
-             >= beta
-        && eval >= beta && eval < VALUE_TB_WIN_IN_MAX_PLY && (!ttMove || ttCapture))
-        return beta > VALUE_TB_LOSS_IN_MAX_PLY ? beta + (eval - beta) / 3 : eval;
-
+        && eval >= beta && (!ttMove || ttCapture) && beta > VALUE_TB_LOSS_IN_MAX_PLY
+        && eval < VALUE_TB_WIN_IN_MAX_PLY)
+        return beta + (eval - beta) / 3;
     // Step 9. Null move search with verification search (~35 Elo)
     if (!PvNode && (ss - 1)->currentMove != Move::null() && (ss - 1)->statScore < 14369
         && eval >= beta && ss->staticEval >= beta - 21 * depth + 393 && !excludedMove
