@@ -1092,7 +1092,7 @@ Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, boo
     // and the stored depth in the TT is greater than or equal to
     // current search depth, we decrease search depth even further.
     if (PvNode && !ttMove)
-        depth -= 3 + (ss->ttHit && ttData.depth >= depth);
+        depth -= 3 + (ss->ttHit && tte->depth() >= depth);
 
     // Use qsearch if depth <= 0.
     if (depth <= 0)
