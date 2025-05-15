@@ -84,7 +84,7 @@ static constexpr double EvalLevel[10] = {1.043, 1.017, 0.952, 1.009, 0.971,
 Value futility_margin(Depth d, bool noTtCutNode, bool improving, bool oppWorsening) {
     Value futilityMult       = 109 - 40 * noTtCutNode;
     Value improvingDeduction = 59 * improving * futilityMult / 32;
-    Value worseningDeduction = 328 * oppWorsening * futilityMult / 1024;
+    Value worseningDeduction = oppWorsening * futilityMult / 3;
 
     return futilityMult * d - improvingDeduction - worseningDeduction;
 }
