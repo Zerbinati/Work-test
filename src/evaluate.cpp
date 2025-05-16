@@ -224,6 +224,9 @@ Value Eval::evaluate(const Position& pos) {
     else
         adjustEval(499, 32793, 903, 9, 147, 1067, 208, 211);
 
+    // Evaluation grain (per tagli alpha-beta migliori) con randomizzazione
+    v = (v / 16) * 16 - 1 + (pos.key() & 0x2);
+
     // Guarantee evaluation does not hit the tablebase range
     v = std::clamp(int(v), VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
 
