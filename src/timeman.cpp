@@ -61,7 +61,7 @@ void TimeManagement::init(Search::LimitsType& limits,
     { return; }
     TimePoint minThinkingTime = TimePoint(options["Minimum Thinking Time"]);
     //minThinkigTime end
-    TimePoint moveOverhead = TimePoint(options["Move Overhead"]);
+    TimePoint moveOverhead = TimePoint(options["MoveOverhead"]);
     TimePoint slowMover    = TimePoint(options["Slow Mover"]);  //for SlowMover
 
     // optScale is a percentage of available time to use for the current move.

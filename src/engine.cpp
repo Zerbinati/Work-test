@@ -91,7 +91,7 @@ Engine::Engine(std::optional<std::string> path) :
     options["Ponder"] << Option(false);
     options["MultiPV"] << Option(1, 1, MAX_MOVES);
     //no skill level
-    options["Move Overhead"] << Option(10, 0, 5000);
+    options["MoveOverhead"] << Option(10, 0, 5000);
     options["Minimum Thinking Time"] << Option(100, 0, 5000);  //minimum thining time
     options["Slow Mover"] << Option(100, 10, 1000);            //slow mover
     options["nodestime"] << Option(0, 0, 10000);
