@@ -111,7 +111,7 @@ void init(OptionsMap& o) {
     o["Skill Level"] << Option(20, 0, 20);
     o["MoveOverhead"] << Option(10, 0, 5000);
     o["Minimum Thinking Time"] << Option(100, 0, 5000);
-    o["Time Contempt"] << Option(20, -100, 100);
+    o["Time Contempt"] << Option(0, -100, 100);
     o["nodestime"] << Option(0, 0, 10000);
     o["UCI_Chess960"] << Option(false);
     o["UCI_LimitStrength"] << Option(false);
@@ -137,7 +137,7 @@ void init(OptionsMap& o) {
     o["Variety"] << Option(0, 0, 40);
     o["Variety Max Score"] << Option(0, 0, 50);
     o["Variety Max Moves"] << Option(0, 0, 40);    // Manual Weight Adjustment Option
-    o["NNUE ManualWeights"] << Option(false, [](const Option& opt) {
+    o["NNUE ManualWeights"] << Option(true, [](const Option& opt) {
     // Check if Manual Weights option is enabled or disabled.
      if (opt) {
         sync_cout << "info string NNUE ManualWeights enabled. Using user-defined weights." << sync_endl;
@@ -157,13 +157,13 @@ void init(OptionsMap& o) {
     });
 
     // Exploration Factor (now uses 0-30 and is divided by 10 in code)
-    o["Exploration Factor"] << Option(2, 0, 30, [](const Option& v) { 
+    o["Exploration Factor"] << Option(0, 0, 30, [](const Option& v) { 
         Search::exploration_factor = float(int(v)) / 10.0;
 });
 
 	// Exploration Decay Factor (now uses 1-50 and is divided by 10 in code)
     o["Use Exploration Decay"] << Option(false);
-    o["Exploration Decay Factor"] << Option(10, 1, 50, [](const Option& v) { 
+    o["Exploration Decay Factor"] << Option(0, 0, 50, [](const Option& v) { 
         Search::exploration_decay_factor = float(int(v)) / 10.0;
 });
 
