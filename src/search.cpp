@@ -1044,10 +1044,12 @@ Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, boo
     // The depth condition is important for mate finding.
     if (!ss->ttPv && depth < 13
         && eval - futility_margin(depth, cutNode && !ss->ttHit, improving, opponentWorsening)
-               - (ss - 1)->statScore / 260
-        && eval >= beta && (!ttMove || ttCapture) && beta > VALUE_TB_LOSS_IN_MAX_PLY
-        && eval < VALUE_TB_WIN_IN_MAX_PLY)
-        return beta + (eval - beta) / 3;
+               - (ss - 1)->statScore / 274
+             >= beta
+        && eval >= beta && eval < 29878  // smaller than TB wins
+        && (!ttMove || ttCapture))
+        return beta > VALUE_TB_LOSS_IN_MAX_PLY ? (eval + beta) / 2 : eval;
+
     // Step 9. Null move search with verification search (~35 Elo)
     if (!PvNode && (ss - 1)->currentMove != Move::null() && (ss - 1)->statScore < 14389
         && eval >= beta && ss->staticEval >= beta - 21 * depth + 390 && !excludedMove
@@ -1057,7 +1059,7 @@ Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, boo
         assert(eval - beta >= 0);
 
         // Null move dynamic reduction based on depth and eval
-        Depth R = std::min(int(eval - beta) / 197, 6) + depth / 3 + 5;
+        Depth R = std::min(int(eval - beta) / 162, 6) + depth / 3 + 5;
 
         ss->currentMove         = Move::null();
         ss->continuationHistory = &thisThread->continuationHistory[0][0][NO_PIECE][0];
