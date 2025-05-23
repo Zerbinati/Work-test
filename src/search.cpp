@@ -108,10 +108,10 @@ constexpr Value to_static_eval(const Value v) {
 }
 
 // History and stats update bonus, based on depth
-int stat_bonus(Depth d) { return std::clamp(190 * d - 298, 20, 1596); }
+int stat_bonus(Depth d) { return std::clamp(245 * d - 320, 0, 1296); }
 
 // History and stats update malus, based on depth
-int stat_malus(Depth d) { return (d < 4 ? 736 * d - 268 : 2044); }
+int stat_malus(Depth d) { return (d < 4 ? 554 * d - 303 : 1203); }
 
 // Add a small random component to draw evaluations to avoid 3-fold blindness
 Value value_draw(const Thread* thisThread) {
@@ -1087,26 +1087,24 @@ Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, boo
     }
 
     // Step 10. Internal iterative reductions (~9 Elo)
-    // For PV nodes without a ttMove, we decrease depth.
-    // Additionally, if the current position is found in the TT
-    // and the stored depth in the TT is greater than or equal to
-    // current search depth, we decrease search depth even further.
+    // For PV nodes without a ttMove, we decrease depth by 3.
     if (PvNode && !ttMove)
-        depth -= 3 + (ss->ttHit && tte->depth() >= depth);
+        depth -= 2 + 2 * (ss->ttHit && tte->depth() >= depth) + 2 * ((ss + 1)->cutoffCnt > 3 && depth < 5);
 
     // Use qsearch if depth <= 0.
     if (depth <= 0)
         return qsearch<PV>(pos, ss, alpha, beta);
 
-    // For cutNodes, if depth is high enough, decrease depth by 2 if there is no ttMove, or
-    // by 1 if there is a ttMove with an upper bound.
-    if (cutNode && depth >= 7 && (!ttMove || tte->bound() == BOUND_UPPER))
-        depth -= 1 + !ttMove;
+    // For cutNodes without a ttMove, we decrease depth by 2 if depth is high enough.
+    // ~~~ STC +2.5 Elo @ 10+0.1s, neutral at LTC
+    if (cutNode && depth >= 6 && !ttMove)
+        depth -= 2;
+
+    probCutBeta = beta + 170 - 64 * improving + 150 * ((ss + 1)->cutoffCnt > 3);
 
     // Step 11. ProbCut (~10 Elo)
     // If we have a good enough capture (or queen promotion) and a reduced search returns a value
     // much above beta, we can (almost) safely prune the previous move.
-    probCutBeta = beta + 184 - 53 * improving;
     if (
       !PvNode && depth > 3
       && std::abs(beta) < VALUE_TB_WIN_IN_MAX_PLY
