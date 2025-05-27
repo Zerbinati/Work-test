@@ -50,6 +50,10 @@ Value evaluate(const NNUE::Networks&          networks,
                Eval::NNUE::AccumulatorStack&  accumulators,
                Eval::NNUE::AccumulatorCaches& caches,
                int                            optimism);
+
+extern int MaterialisticEvaluationStrategy;
+extern int PositionalEvaluationStrategy;
+
 }  // namespace Eval
 
 }  // namespace Stockfish

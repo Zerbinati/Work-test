@@ -37,6 +37,9 @@
 
 namespace Stockfish {
 
+int Eval::MaterialisticEvaluationStrategy = 0;
+int Eval::PositionalEvaluationStrategy = 0;
+
 // Returns a static, purely materialistic evaluation of the position from
 // the point of view of the side to move. It can be divided by PawnValue to get
 // an approximation of the material advantage on the board in terms of pawns.

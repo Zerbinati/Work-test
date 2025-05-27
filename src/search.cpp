@@ -41,6 +41,7 @@
 #include "movepick.h"
 #include "nnue/network.h"
 #include "nnue/nnue_accumulator.h"
+#include "polybook.h"
 #include "position.h"
 #include "syzygy/tbprobe.h"
 #include "thread.h"
@@ -51,6 +52,7 @@
 
 namespace Stockfish {
 
+
 namespace TB = Tablebases;
 
 void syzygy_extend_pv(const OptionsMap&            options,
@@ -60,6 +62,10 @@ void syzygy_extend_pv(const OptionsMap&            options,
                       Value&                       v);
 
 using namespace Search;
+
+double exploration_factor = 0.2;            // Default exploration factor, controls search exploration.
+double exploration_decay_factor = 1.0;      // Decay factor for exploration, adjusts dynamically.
+bool dynamic_exploration = true;            // Dynamic exploration mode enabled by default.
 
 namespace {
 
@@ -130,6 +136,45 @@ void update_all_stats(const Position&      pos,
                       Move                 TTMove,
                       int                  moveCount);
 
+void update_exploration_factor(const Position& pos, int depth, int timeLeftMs) {
+    if (!(bool)::UCI::Options["Use Exploration Factor"])
+        return;
+
+    static int last_updated_ply = -1;
+    static double cached_exploration_factor = -1.0;
+
+    if (depth % 2 != 0 && depth != last_updated_ply)
+        last_updated_ply = depth;
+    else
+        return;
+
+    double base_factor = ::UCI::Options["Exploration Factor"];
+    double new_exploration_factor = base_factor;
+
+    double decay = ::UCI::Options["Use Exploration Decay"] ? Search::exploration_decay_factor : 1.0;
+
+    if (timeLeftMs > 60000)
+        new_exploration_factor += 0.05 * decay;
+    else if (timeLeftMs < 10000)
+        new_exploration_factor -= 0.05 * decay;
+
+    new_exploration_factor -= 0.005 * std::sqrt(depth) * decay;
+
+    Square kingSq = pos.square<KING>(pos.side_to_move());
+    Bitboard attackers = pos.attackers_to(kingSq);
+    int attacker_count = popcount(attackers);
+
+    if (attacker_count > 2)
+        new_exploration_factor += 0.05 * decay;
+
+    new_exploration_factor = std::clamp(new_exploration_factor, 0.0, 1.0);
+
+    if (Search::exploration_factor != new_exploration_factor) {
+        Search::exploration_factor = new_exploration_factor;
+        cached_exploration_factor = new_exploration_factor;
+    }
+}
+
 }  // namespace
 
 Search::Worker::Worker(SharedState&                    sharedState,
@@ -169,6 +214,8 @@ void Search::Worker::start_searching() {
                             main_manager()->originalTimeAdjust);
     tt.new_search();
 
+    Move bookMove = Move::none();
+
     if (rootMoves.empty())
     {
         rootMoves.emplace_back(Move::none());
@@ -177,8 +224,33 @@ void Search::Worker::start_searching() {
     }
     else
     {
-        threads.start_searching();  // start non-main threads
-        iterative_deepening();      // main thread start searching
+        if (!limits.infinite && !limits.mate)
+        {
+if ((bool) options["Book1"] && rootPos.game_ply() / 2 < (int) options["Book1 Depth"])
+    bookMove = polybook[0].probe(rootPos,
+                                 (bool) options["Book1 BestBookMove"],
+                                 (int) options["Book1 Width"]);
+
+if (bookMove == Move::none() && (bool) options["Book2"]
+    && rootPos.game_ply() / 2 < (int) options["Book2 Depth"])
+    bookMove = polybook[1].probe(rootPos,
+                                 (bool) options["Book2 BestBookMove"],
+                                 (int) options["Book2 Width"]);
+        }
+
+        if (bookMove != Move::none()
+            && std::find(rootMoves.begin(), rootMoves.end(), bookMove) != rootMoves.end())
+        {
+            for (auto&& th : threads)
+                std::swap(th->worker.get()->rootMoves[0],
+                          *std::find(th->worker.get()->rootMoves.begin(),
+                                     th->worker.get()->rootMoves.end(), bookMove));
+        }
+        else
+        {
+            threads.start_searching();  // start non-main threads
+            iterative_deepening();      // main thread start searching
+        }
     }
 
     // When we reach the maximum depth, we can arrive here without a raise of
@@ -291,6 +363,8 @@ void Search::Worker::iterative_deepening() {
     while (++rootDepth < MAX_PLY && !threads.stop
            && !(limits.depth && mainThread && rootDepth > limits.depth))
     {
+		update_exploration_factor(rootPos, rootDepth, main_manager()->tm.optimum());
+
         // Age out PV variability metric
         if (mainThread)
             totBestMoveChanges /= 2;
@@ -566,7 +640,7 @@ void Search::Worker::clear() {
 template<NodeType nodeType>
 Value Search::Worker::search(
   Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode) {
-
+    update_exploration_factor(pos, depth, int(main_manager()->tm.optimum()));
     constexpr bool PvNode   = nodeType != NonPV;
     constexpr bool rootNode = nodeType == Root;
     const bool     allNode  = !(PvNode || cutNode);

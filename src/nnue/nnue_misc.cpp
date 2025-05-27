@@ -33,6 +33,7 @@
 #include "../position.h"
 #include "../types.h"
 #include "../uci.h"
+#include "../evaluate.h"
 #include "network.h"
 #include "nnue_accumulator.h"
 
@@ -41,6 +42,8 @@ namespace Stockfish::Eval::NNUE {
 
 constexpr std::string_view PieceToChar(" PNBRQK  pnbrqk");
 
+int MaterialisticEvaluationStrategy = 0;
+int PositionalEvaluationStrategy = 0;
 
 namespace {
 // Converts a Value into (centi)pawns and writes it in a buffer.
@@ -125,8 +128,14 @@ trace(Position& pos, const Eval::NNUE::Networks& networks, Eval::NNUE::Accumulat
     // We estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
     auto [psqt, positional] = networks.big.evaluate(pos, accumulators, &caches.big);
-    Value base              = psqt + positional;
-    base                    = pos.side_to_move() == WHITE ? base : -base;
+
+    constexpr int delta = 24;
+
+    Value base = static_cast<Value>(
+        ((1024 - delta + MaterialisticEvaluationStrategy) * psqt +
+         (1024 + delta + PositionalEvaluationStrategy) * positional)
+        / (1024 * OutputScale));
+    base = pos.side_to_move() == WHITE ? base : -base;
 
     for (File f = FILE_A; f <= FILE_H; ++f)
         for (Rank r = RANK_1; r <= RANK_8; ++r)
@@ -141,9 +150,12 @@ trace(Position& pos, const Eval::NNUE::Networks& networks, Eval::NNUE::Accumulat
 
                 accumulators.reset();
                 std::tie(psqt, positional) = networks.big.evaluate(pos, accumulators, &caches.big);
-                Value eval                 = psqt + positional;
-                eval                       = pos.side_to_move() == WHITE ? eval : -eval;
-                v                          = base - eval;
+                Value eval = static_cast<Value>(
+                    ((1024 - delta + MaterialisticEvaluationStrategy) * psqt +
+                     (1024 + delta + PositionalEvaluationStrategy) * positional)
+                    / (1024 * OutputScale));
+                eval = pos.side_to_move() == WHITE ? eval : -eval;
+                v    = base - eval;
 
                 pos.put_piece(pc, sq);
             }

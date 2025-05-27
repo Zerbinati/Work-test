@@ -35,6 +35,7 @@
 #include "nnue/nnue_common.h"
 #include "numa.h"
 #include "perft.h"
+#include "polybook.h"
 #include "position.h"
 #include "search.h"
 #include "syzygy/tbprobe.h"
@@ -127,6 +128,32 @@ Engine::Engine(std::optional<std::string> path) :
     options.add("Syzygy50MoveRule", Option(true));
 
     options.add("SyzygyProbeLimit", Option(7, 0, 7));
+    
+    options.add("Book1", Option(false));
+
+    options.add("Book1 File", Option("", [](const Option& o) {
+    polybook[0].init(o);
+    return std::nullopt;
+      }));
+
+    options.add("Book1 BestBookMove", Option(false));
+
+    options.add("Book1 Depth", Option(255, 1, 350));
+
+	options.add("Book1 Width", Option(1, 1, 10));
+
+    options.add("Book2", Option(false));
+
+    options.add("Book2 File", Option("", [](const Option& o) {
+    polybook[1].init(o);
+    return std::nullopt;
+      }));
+
+    options.add("Book2 BestBookMove", Option(false));
+
+    options.add("Book2 Depth", Option(255, 1, 350));
+
+    options.add("Book2 Width", Option(1, 1, 10));
 
     options.add(  //
       "EvalFile", Option(EvalFileDefaultNameBig, [this](const Option& o) {
@@ -137,6 +164,48 @@ Engine::Engine(std::optional<std::string> path) :
     options.add(  //
       "EvalFileSmall", Option(EvalFileDefaultNameSmall, [this](const Option& o) {
           load_small_network(o);
+          return std::nullopt;
+      }));
+	  
+    options.add(  //
+      "Use Exploration Factor", Option(false, [](const Option& opt) {
+          sync_cout << "info string Use Exploration Factor is now: "
+                    << (opt ? "enabled" : "disabled") << sync_endl;
+          return std::nullopt;
+      }));
+
+    options.add(  //
+      "Exploration Factor", Option(2, 0, 30, [](const Option& v) {
+          Search::exploration_factor = float(int(v)) / 10.0;
+          return std::nullopt;
+      }));
+
+    options.add(  //
+      "Use Exploration Decay", Option(false));
+
+    options.add(  //
+      "Exploration Decay Factor", Option(10, 1, 50, [](const Option& v) {
+          Search::exploration_decay_factor = float(int(v)) / 10.0;
+          return std::nullopt;
+      }));
+
+    options.add(  //
+      "Dynamic Exploration", Option(false, [](const Option& opt) {
+          sync_cout << "info string Dynamic Exploration is now: "
+                    << (opt ? "enabled" : "disabled") << sync_endl;
+          Search::dynamic_exploration = bool(opt);
+          return std::nullopt;
+      }));
+
+    options.add(  //
+      "Materialistic Evaluation Strategy", Option(0, -12, 12, [](const Option& o) {
+          Eval::MaterialisticEvaluationStrategy = 10 * int(o);
+          return std::nullopt;
+      }));
+
+    options.add(  //
+      "Positional Evaluation Strategy", Option(0, -12, 12, [](const Option& o) {
+          Eval::PositionalEvaluationStrategy = 10 * int(o);
           return std::nullopt;
       }));
 

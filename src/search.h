@@ -57,6 +57,11 @@ class OptionsMap;
 
 namespace Search {
 
+// Global Variables for Search Exploration
+extern double exploration_factor;          // Controls the balance between exploration and exploitation.
+extern bool dynamic_exploration;           // Enables or disables dynamic exploration adjustments.
+extern double exploration_decay_factor;    // Modifies the rate of decay for the exploration factor.
+
 // Stack struct keeps track of the information we need to remember from nodes
 // shallower and deeper in the tree during the search. Each search thread has
 // its own array of Stack objects, indexed by the current ply.
